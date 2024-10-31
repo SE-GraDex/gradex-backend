@@ -1,0 +1,31 @@
+{
+  "name": "se-project",
+  "version": "1.0.0",
+  "description": "Backend for SE-PROJECT",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx tsc && npx tsc-alias",
+    "start": "node ./dist/server.js",
+    "dev": "npx ts-node-dev -r tsconfig-paths/register src/server.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "helmet": "^8.0.0",
+    "mongoose": "^8.8.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/mongoose": "^5.11.96",
+    "@types/node": "^22.8.5",
+    "nodemon": "^3.1.7",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.6.3"
+  }
+}
