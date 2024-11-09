@@ -4,6 +4,8 @@ import dotenv from "dotenv"
 import cors from "cors";
 import mongoose from "mongoose";
 
+const fs = require('fs');
+const path = require('path');
 const app: Express = express();
 const port = process.env.PORT || 8080;
 const env = process.env;
@@ -13,6 +15,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 dotenv.config();
+
+const routesDir = path.join(__dirname, 'routes');
+fs.readdirSync(routesDir).forEach((file: string) => {
+    if (file.endsWith('.ts')) {
+        const routePath = `/api/${file.replace('.ts', '')}`;
+        const router = require(path.join(routesDir, file));
+        console.log(router);
+        app.use(routePath, router);
+    }
+});
 
 app.get("/", (req: Request, res: Response) => {
     res.send("Express TypeScript Server is Running");
