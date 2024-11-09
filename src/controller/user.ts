@@ -15,28 +15,30 @@ interface IUser {
     postalCode: string;
 }
 
-exports.addUser = async (req: Request, res: Response): Promise<void> => {
+export const addUser = async (req: Request, res: Response): Promise<void> => {
     try {
         const newUser = new User(req.body as IUser);
         await newUser.save();
-        res.sendStatus(201);
+        res.sendStatus(201);  // No need to return the response
     } catch (err) {
         console.log(err instanceof Error ? err.message : 'Unknown error');
         res.status(500).send({ message: err instanceof Error ? err.message : 'Unknown error' });
     }
-}
+};
 
-exports.getUser = async (req: Request, res: Response) => {
+export const getUser = async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
 
         if (!id) {
-            return res.status(400).send({ message: 'ID parameter is missing' });
+            res.status(400).send({ message: 'ID parameter is missing' });
+            return;
         }
         const user = await User.findById(id, { password: 0 });
 
         if (!user) {
-            return res.status(404).send({ message: 'User not found' });
+            res.status(404).send({ message: 'User not found' });
+            return;
         }
         res.status(200).send(user);
     } catch (err) {
@@ -45,12 +47,13 @@ exports.getUser = async (req: Request, res: Response) => {
     }
 };
 
-exports.getAllUsers = async (req: Request, res: Response) => {
+export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
     try {
         const users = await User.find();
 
         if (users.length === 0) { // Check if the users array is empty
-            return res.status(404).send({ message: 'No users found' });
+            res.status(404).send({ message: 'No users found' });
+            return;
         }
 
         res.status(200).send(users);
@@ -59,4 +62,3 @@ exports.getAllUsers = async (req: Request, res: Response) => {
         res.status(500).send({ message: 'Internal Server Error' });
     }
 };
-

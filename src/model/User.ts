@@ -1,62 +1,77 @@
-const mongoose = require("mongoose");
-const { Schema } = mongoose;
+import mongoose, { Schema, Document } from 'mongoose';
 
-const userSchema = new Schema(
+// Define the IUser interface
+interface IUser extends Document {
+    email: string;
+    password: string;
+    role: 'CUSTOMER' | 'MEAL DESIGNER' | 'MESSENGER';
+    firstname: string;
+    lastname: string;
+    addressName: string;
+    addressUnitNumber: string;
+    streetNumber: string;
+    city: string;
+    region: string;
+    postalCode: string;
+}
+
+// Define the user schema
+const userSchema = new Schema<IUser>(
     {
         email: {
             type: String,
             required: true,
-            unique: true
+            unique: true,
         },
         password: {
             type: String,
-            required: true
+            required: true,
         },
         role: {
             type: String,
-            default: "CUSTOMER",
-            enum: ["CUSTOMER", "MEAL DESIGNER", "MESSENGER"],
-            required: true
+            default: 'CUSTOMER',
+            enum: ['CUSTOMER', 'MEAL DESIGNER', 'MESSENGER'],
+            required: true,
         },
         firstname: {
             type: String,
-            required: true
+            required: true,
         },
         lastname: {
             type: String,
-            required: true
+            required: true,
         },
         addressName: {
             type: String,
-            required: true
+            required: true,
         },
         addressUnitNumber: {
             type: String,
-            required: true
+            required: true,
         },
         streetNumber: {
             type: String,
-            required: true
+            required: true,
         },
         city: {
             type: String,
-            required: true
+            required: true,
         },
         region: {
             type: String,
-            required: true
+            required: true,
         },
         postalCode: {
             type: String,
-            required: true
-        }
+            required: true,
+        },
     },
     {
-        timestamps: true
+        timestamps: true,
     }
 );
 
-const User = mongoose.model('User', userSchema);
+// Create the User model using the schema
+const User = mongoose.model<IUser>('User', userSchema);
 
-// Use `export default` for compatibility with TypeScript
 export default User;
