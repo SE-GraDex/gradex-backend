@@ -11,8 +11,8 @@ interface IIngredientList {
 // Get all ingredient lists
 export const getAllIngredientLists = async (req: Request, res: Response): Promise<void> => {
     try {
-        // const ingredientLists = await Ingredient_list.find()
-        res.status(200).json({ message : 'Bro'});
+        const ingredientLists = await Ingredient_list.find()
+        res.status(200).json(ingredientLists);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching ingredient lists', error });
     }
@@ -23,12 +23,12 @@ export const getIngredientListById = async (req: Request, res: Response): Promis
     try {
         const ingredientList = await Ingredient_list.findById(req.params.id).populate({
             path: 'ingredient',
-            select: ['name','unit']
+            select: ['name', 'unit']
         });
-        if (!ingredientList){
+        if (!ingredientList) {
             res.status(404).json({ message: 'Ingredient list not found' });
             return;
-        }  
+        }
         res.status(200).json(ingredientList);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching ingredient list', error });
@@ -70,10 +70,10 @@ export const updateIngredientList = async (req: Request, res: Response): Promise
             req.body,
             { new: true }
         ).populate('ingredientId');
-        if (!updatedIngredientList){
+        if (!updatedIngredientList) {
             res.status(404).json({ message: 'Ingredient list not found' });
             return;
-        }  
+        }
         res.status(200).json(updatedIngredientList);
     } catch (error) {
         res.status(500).json({ message: 'Error updating ingredient list', error });
@@ -86,7 +86,7 @@ export const deleteIngredientList = async (req: Request, res: Response): Promise
         const deletedIngredientList = await Ingredient_list.findByIdAndDelete(req.params.id);
         if (!deletedIngredientList) {
             res.status(404).json({ message: 'Ingredient list not found' });
-            return; 
+            return;
         }
         res.status(200).json({ message: 'Ingredient list deleted successfully' });
     } catch (error) {
