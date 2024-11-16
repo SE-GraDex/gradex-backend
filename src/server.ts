@@ -5,15 +5,23 @@ import cors from "cors";
 import mongoose from "mongoose";
 import fs from 'fs';
 import path from 'path';
+import cookieParser from 'cookie-parser';
 
 const app: Express = express();
 const port = process.env.PORT || 8080;
 const env = process.env;
 
 app.use(helmet());
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(
+    cors({
+        origin: ["http://localhost:5173"],
+        credentials: true
+    }),
+);
+app.use(cookieParser())
+
 dotenv.config();
 
 const routesDir = path.join(__dirname, 'routes');
