@@ -1,16 +1,16 @@
-import mongoose, { Schema, Document } from 'mongoose';
-
+import mongoose, { Schema, Document, ObjectId } from 'mongoose';
+import Ingredient from './Ingredient';
+ 
 interface IIngredientList extends Document {
-    ingredient: mongoose.Types.ObjectId,
+    ingredientId: ObjectId, 
     portion: number 
 }
 
 const ingredientListSchema = new Schema<IIngredientList>(
     {
-        ingredient: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Ingredient', 
-            required: true
+        ingredientId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Ingredient'
         },
         portion: {
             type: Number, 

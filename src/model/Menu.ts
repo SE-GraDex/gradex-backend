@@ -1,10 +1,10 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, ObjectId } from 'mongoose';
 
 interface IMenu extends Document {
     menu_title: string,
     menu_description: string,
-    ingredient_list: mongoose.Types.ObjectId,
-    package: mongoose.Types.ObjectId
+    ingredient_list: ObjectId[],
+    package: ObjectId
 }
 
 const menuSchema = new Schema<IMenu>(
@@ -17,13 +17,13 @@ const menuSchema = new Schema<IMenu>(
             type: String, 
             required: true
         },
-        ingredient_list: {
-            type: mongoose.Schema.Types.ObjectId,
-            required: true
-        },
+        ingredient_list: [{ 
+            type: Schema.Types.ObjectId, 
+            ref: 'IngredientList' 
+        }],
         package: {
-            type: mongoose.Schema.Types.ObjectId,
-            required: true
+            type: Schema.Types.ObjectId,
+            ref: 'Package',
         }
     }
 );

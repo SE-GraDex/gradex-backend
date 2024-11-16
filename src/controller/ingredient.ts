@@ -1,15 +1,17 @@
 import Ingredient from '@/model/Ingredient';
 import { Request, Response } from 'express';
+import { ObjectId } from 'mongoose';
 
 interface  IIngredient {
     name: string,
+    PricePerUnit: number,
     unit: string
 }
 
 // Create a new ingredient
 export const createIngredient = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { name, unit } = req.body as IIngredient;
+        const { name,PricePerUnit, unit } = req.body as IIngredient;
         
         // Check if the ingredient already exists
         const existingIngredient = await Ingredient.findOne({ name });
@@ -18,7 +20,7 @@ export const createIngredient = async (req: Request, res: Response): Promise<voi
             return;
         }
 
-        const newIngredient = new Ingredient({ name, unit } as IIngredient);
+        const newIngredient = new Ingredient({ name,PricePerUnit, unit } as IIngredient);
         await newIngredient.save();
         
         res.status(201).json({
@@ -62,10 +64,10 @@ export const getIngredientById = async (req: Request, res: Response): Promise<vo
 // Update an ingredient by ID
 export const updateIngredient = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { name, unit } = req.body as IIngredient;
+        const { name,PricePerUnit, unit } = req.body as IIngredient;
         const ingredient = await Ingredient.findByIdAndUpdate(
             req.params.id,
-            { name, unit },
+            { name,PricePerUnit, unit },
             { new: true } // Return the updated document
         );
         

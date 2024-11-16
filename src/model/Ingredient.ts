@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 interface  IIngredient extends Document {
     name: string,
+    PricePerUnit: number,
     unit: string
 }
 
@@ -11,6 +12,10 @@ const ingredientSchema = new Schema<IIngredient>(
             type: String,
             required: true,
             unique: true
+        },
+        PricePerUnit: {
+            type: Number,
+            required:true
         },
         unit:{
             type: String,
