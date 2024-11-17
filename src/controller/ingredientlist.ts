@@ -11,27 +11,10 @@ interface IIngredientList {
 // Get all ingredient lists
 export const getAllIngredientLists = async (req: Request, res: Response): Promise<void> => {
     try {
-        // const ingredientLists = await Ingredient_list.find()
-        res.status(200).json({ message : 'Bro'});
+        const ingredientLists = await Ingredient_list.find()
+        res.status(200).json(ingredientLists);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching ingredient lists', error });
-    }
-};
-
-// Get a specific ingredient list by ID
-export const getIngredientListById = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const ingredientList = await Ingredient_list.findById(req.params.id).populate({
-            path: 'ingredient',
-            select: ['name','unit']
-        });
-        if (!ingredientList){
-            res.status(404).json({ message: 'Ingredient list not found' });
-            return;
-        }  
-        res.status(200).json(ingredientList);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching ingredient list', error });
     }
 };
 
@@ -59,24 +42,6 @@ export const createIngredientList = async (req: Request, res: Response): Promise
         res.status(201).json(savedIngredientLists);
     } catch (error) {
         res.status(500).json({ message: 'Error creating ingredient list', error });
-    }
-};
-
-// Update an ingredient list by ID
-export const updateIngredientList = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const updatedIngredientList = await Ingredient_list.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true }
-        ).populate('ingredientId');
-        if (!updatedIngredientList){
-            res.status(404).json({ message: 'Ingredient list not found' });
-            return;
-        }  
-        res.status(200).json(updatedIngredientList);
-    } catch (error) {
-        res.status(500).json({ message: 'Error updating ingredient list', error });
     }
 };
 
