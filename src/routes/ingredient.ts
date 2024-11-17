@@ -4,7 +4,7 @@ import express from "express";
 
 const router = express.Router();
 
-router.post('/createIngredient', createIngredient );
+router.post('/createIngredient', createIngredient);
 router.get('/getIngredients', getIngredients);
 router.get('/getIngredientById/:id', getIngredientById);
 router.put('/updateIngredient/:id', updateIngredient);
