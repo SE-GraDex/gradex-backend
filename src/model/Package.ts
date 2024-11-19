@@ -1,6 +1,7 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, ObjectId } from 'mongoose';
 
 interface IPackage extends Document {
+    user_id: ObjectId,
     name: string,
     price: number,
     features: string,
@@ -9,6 +10,10 @@ interface IPackage extends Document {
 
 const packageSchema = new Schema<IPackage>(
     {
+        user_id:{
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        },
         name: {
             type: String, 
             required: true
@@ -28,6 +33,6 @@ const packageSchema = new Schema<IPackage>(
     }
 );
 
-const Package = mongoose.model<IPackage>('Ingredient_list', packageSchema);
+const Package = mongoose.model<IPackage>('Package', packageSchema);
 
 export default Package;
