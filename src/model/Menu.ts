@@ -28,6 +28,6 @@ const menuSchema = new Schema<IMenu>(
     }
 );
 
-const Menu = mongoose.model<IMenu>('Ingredient_list', menuSchema);
+const Menu = mongoose.model<IMenu>('Menu', menuSchema);
 
 export default Menu;
