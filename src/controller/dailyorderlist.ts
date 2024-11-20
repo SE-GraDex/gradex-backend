@@ -5,7 +5,7 @@ import DailyOrderList from "@/model/Daily_order_list";
 export const addDailyOrderList = async (req: Request, res: Response): Promise<void> => {
     try {
 
-        const { date, menu_title, menu_description, menu_image, ingredient_list } = req.body;
+        const { date, menu_title, menu_description, menu_image, ingredient_list, status } = req.body;
 
         const newOrder = new DailyOrderList({
             date,
@@ -13,6 +13,7 @@ export const addDailyOrderList = async (req: Request, res: Response): Promise<vo
             menu_title,
             menu_description,
             ingredient_list,
+            status
         });
 
         const savedOrder = await newOrder.save();
@@ -21,6 +22,7 @@ export const addDailyOrderList = async (req: Request, res: Response): Promise<vo
             message: "Daily Order List added successfully",
             data: savedOrder,
         });
+
     } catch (error) {
         console.error("Error adding daily order list:", error);
         res.status(500).json({ message: "Internal Server Error", error });

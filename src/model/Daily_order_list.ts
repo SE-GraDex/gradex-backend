@@ -1,18 +1,7 @@
 import mongoose, { Schema, Document, ObjectId } from "mongoose";
+import { IDailyOrderList } from "@/utils/interface";
 
 
-interface IDailyOrderList extends Document {
-    date: Date
-    menu_title: string,
-    menu_description: string,
-    menu_image: string,
-    ingredient_list: ({
-        name: string,
-        PricePerUnit: number,
-        unit: string,
-        portion: number
-    })[];
-}
 
 const dailyOrderListSchema = new mongoose.Schema<IDailyOrderList>(
     {
@@ -35,11 +24,16 @@ const dailyOrderListSchema = new mongoose.Schema<IDailyOrderList>(
         ingredient_list: [
             {
                 name: { type: String, required: true },
-                PricePerUnit: { type: Number, required: true },
+                priceperunit: { type: Number, required: true },
                 portion: { type: Number, required: true },
                 unit: { type: String, required: true }
             },
         ],
+        status: {
+            type: Number,
+            default: 0,
+            required: true
+        }
     }
 )
 
