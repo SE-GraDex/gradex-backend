@@ -21,10 +21,11 @@ const menuSchema = new Schema<IMenu>(
             type: Schema.Types.ObjectId, 
             ref: 'IngredientList' 
         }],
-        package: {
-            type: Schema.Types.ObjectId,
-            ref: 'Package',
-        }
+        package: { 
+            type: String, 
+            enum: ['basic', 'deluxe', 'premium'],
+            required: true 
+          }
     }
 );
 
