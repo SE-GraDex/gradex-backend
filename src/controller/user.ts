@@ -1,5 +1,10 @@
 import { Request, Response } from 'express';
 import User from '../model/User';
+import DailyOrderList from '@/model/Daily_order_list';
+
+import jwt from 'jsonwebtoken';
+
+const secret = process.env.JWT_SECRET || "fallback_secret";
 
 interface IUser {
     email: string;
@@ -62,3 +67,36 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
         res.status(500).send({ message: 'Internal Server Error' });
     }
 };
+
+
+export const currentDailyOrderList = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const token = req.cookies?.token;
+
+        if (!token) {
+            res.status(401).send({ message: "Unauthorized: No token provided" });
+            return;
+        }
+
+        const decoded = jwt.verify(token, secret) as { email: string; role: string };
+
+        const user = await User.findOne({ email: decoded.email }).select('-password'); // Exclude password from the response
+        if (!user) {
+            res.status(404).send({ message: "User not found" });
+            return;
+        }
+
+        const data = await user.populate('daily_order_list');
+
+        res.status(200).send(data);
+    } catch (err) {
+        if (err instanceof jwt.JsonWebTokenError) {
+            res.status(401).send({ message: "Unauthorized: Invalid token" });
+        } else {
+            console.log(err instanceof Error ? err.message : 'Unknown error');
+            res.status(500).send({ message: "Internal Server Error" });
+        }
+    }
+};
+
+

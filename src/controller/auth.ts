@@ -100,6 +100,7 @@ export const currentUser = async (req: Request, res: Response): Promise<void> =>
             return;
         }
 
+
         res.status(200).send(user);
     } catch (err) {
         if (err instanceof jwt.JsonWebTokenError) {
