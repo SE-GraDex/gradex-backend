@@ -28,6 +28,6 @@ const packageSchema = new Schema<IPackage>(
     }
 );
 
-const Package = mongoose.model<IPackage>('Ingredient_list', packageSchema);
+const Package = mongoose.model<IPackage>('Package', packageSchema);
 
 export default Package;
