@@ -5,11 +5,17 @@ import cors from "cors";
 import mongoose from "mongoose";
 import fs from 'fs';
 import path from 'path';
+
+import { deleteExpiredPackages } from "./controller/package";
+
+
 import cookieParser from 'cookie-parser';
+
 
 const app: Express = express();
 const port = process.env.PORT || 8080;
 const env = process.env;
+const cron = require("node-cron");
 
 app.use(helmet());
 app.use(express.json());
@@ -57,4 +63,18 @@ database();
 
 app.listen(port, () => {
     console.log(`✨[server]: Server is running at http://localhost:${port}`);
+});
+
+// Schedule a job to run Expired package function everyday
+cron.schedule("0 0 * * *", async () => {
+    try {
+        console.log('Running scheduled job to delete expired packages');
+        await deleteExpiredPackages({} as any, {
+            status: (code: number) => ({
+                json: (data: any) => console.log(`Status: ${code}`, data)
+            })
+        } as any);
+    } catch (error) {
+        console.error('Error running the scheduled task:', error);
+    }
 });
