@@ -1,18 +1,20 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, ObjectId } from 'mongoose';
 
 // Define the IUser interface
 interface IUser extends Document {
-    email: string;
-    password: string;
-    role: 'CUSTOMER' | 'MEAL DESIGNER' | 'MESSENGER';
-    firstname: string;
-    lastname: string;
-    addressName: string;
-    addressUnitNumber: string;
-    streetNumber: string;
-    city: string;
-    region: string;
-    postalCode: string;
+    email: string,
+    password: string,
+    role: 'CUSTOMER' | 'MEAL DESIGNER' | 'MESSENGER',
+    firstname: string,
+    lastname: string,
+    addressName: string,
+    addressUnitNumber: string,
+    streetNumber: string,
+    city: string,
+    region: string,
+    postalCode: string,
+    package: ObjectId[]
+    daily_order_list: ObjectId[]
 }
 
 // Define the user schema
@@ -65,6 +67,17 @@ const userSchema = new Schema<IUser>(
             type: String,
             required: true,
         },
+        package: [{
+            type: Schema.Types.ObjectId,
+            ref: 'Package',
+        }],
+        daily_order_list: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: 'DailyOrderList'
+            }
+        ]
+
     },
     {
         timestamps: true,
