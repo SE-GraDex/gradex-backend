@@ -12,4 +12,13 @@ export interface IDailyOrderList extends Document {
         portion: number;
     }[];
     status: number;
+    tracking_number: string;
+}
+
+export interface IPackage extends Document {
+    user_id: ObjectId,
+    package_name: 'Basic' | 'Deluxe' | 'Premium',
+    price: number,
+    features: string,
+    package_start_date: Date
 }

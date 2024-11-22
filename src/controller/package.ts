@@ -1,4 +1,5 @@
 import Package from '@/model/Package';
+import User from '@/model/User';
 import { Request, Response } from 'express';
 import { ObjectId } from 'mongoose';
 
@@ -21,19 +22,19 @@ interface IPackage {
 
 export const createPackage = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { user_id , package_name , price , features , package_start_date } = req.body as IPackage;
-        
+        const { user_id, package_name, price, features, package_start_date } = req.body as IPackage;
+
         const startDate = new Date(package_start_date);
-        
+
         // Add 30 days to the start date
         const endDate = new Date(startDate);
         endDate.setDate(startDate.getDate() + 30);
-        const newPackage = new Package({ 
-            user_id , 
-            package_name , 
-            price , 
-            features , 
-            package_start_date , 
+        const newPackage = new Package({
+            user_id,
+            package_name,
+            price,
+            features,
+            package_start_date,
             package_end_date: endDate
         } as IPackage);
         await newPackage.save();
@@ -45,10 +46,10 @@ export const createPackage = async (req: Request, res: Response): Promise<void> 
         console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
-    
+
 };
 
-export const getAllPackages = async (req: Request , res: Response): Promise<void> => {
+export const getAllPackages = async (req: Request, res: Response): Promise<void> => {
     try {
         const packages = await Package.find();
         res.status(200).json(packages);
@@ -63,24 +64,47 @@ export const deleteExpiredPackages = async (req: Request, res: Response): Promis
         // Get the current date and set it to midnight (00:00:00) to ignore the time part
         const currentDate = new Date();
 
-        const result = await Package.deleteMany({
+        // Find obsolete packages
+        const obsoletePackages = await Package.find({
             package_end_date: {
                 $lte: currentDate
             }
         });
 
-        res.status(200).json({ message: `${result.deletedCount} package(s) deleted` });
-        // res.status(200).json({ message: `${currentDate.toISOString().split('T')[0]}` });
+        // Extract _id values from obsolete packages
+        const packageIds = obsoletePackages.map(pkg => pkg._id);
+
+        if (packageIds.length === 0) {
+            res.status(200).json({ message: 'No expired packages to delete.' });
+            return;
+        }
+
+        // Remove package IDs from user schema
+        const result = await User.updateMany(
+            { package: { $in: packageIds } }, // Match users with these package IDs
+            { $pull: { package: { $in: packageIds } } } // Remove the package IDs from the array
+        );
+
+        // Optionally, delete the obsolete packages from the database
+        await Package.deleteMany({ _id: { $in: packageIds } });
+
+        res.status(200).json({
+            message: `Removed ${packageIds.length} expired packages and updated ${result.modifiedCount} user(s).`
+        });
     } catch (error) {
         console.error('Error deleting expired packages:', error);
-        res.status(500).json({ message: 'An error occurred while deleting expired packages.', error });
+        res.status(500).json({
+            message: 'An error occurred while deleting expired packages.',
+            error
+        });
     }
 };
+
 
 export const deletePackageById = async (req: Request, res: Response): Promise<void> => {
     try {
         const packages = await Package.findByIdAndDelete(req.params.id);
-        
+
         if (!packages) {
             res.status(404).json({ message: 'Package not found' });
             return;

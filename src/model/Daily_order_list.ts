@@ -33,6 +33,11 @@ const dailyOrderListSchema = new mongoose.Schema<IDailyOrderList>(
             type: Number,
             default: 0,
             required: true
+        },
+        tracking_number: {
+            type: String,
+            required: true,
+            unique: true
         }
     }
 )
