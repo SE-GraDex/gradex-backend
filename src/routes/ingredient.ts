@@ -7,7 +7,7 @@ const router = express.Router();
 router.post('/createIngredient', createIngredient);
 router.get('/getIngredients', getIngredients);
 router.get('/getIngredientById/:id', getIngredientById);
-router.put('/updateIngredient/:id', updateIngredient);
-router.delete('/deleteIngredient/:id', deleteIngredient);
+router.put('/updateIngredient/:name', updateIngredient);
+router.delete('/deleteIngredient/:name', deleteIngredient);
 
 export default router;
