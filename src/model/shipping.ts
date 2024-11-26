@@ -5,7 +5,7 @@ interface IShipping extends Document {
     customer_name: string,
     address: string,
     contact: string,
-    status: 'Ongoing' | 'Derivered' | 'Returned' | 'Failed to Deliver'
+    status: 'Ongoing' | 'Delivered' | 'Returned' | 'Failed to Deliver'
 }
 
 const shippingSchema = new Schema<IShipping>(
@@ -28,7 +28,7 @@ const shippingSchema = new Schema<IShipping>(
         },
         status: {
             type: String,
-            enum: ['Ongoing' , 'Derivered' , 'Returned' , 'Failed to Deliver'],
+            enum: ['Ongoing' , 'Delivered' , 'Returned' , 'Failed to Deliver'],
             required: true 
         }
     }

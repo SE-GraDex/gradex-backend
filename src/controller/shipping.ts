@@ -8,7 +8,7 @@ interface IShipping {
   customer_name: string;
   address: string;
   contact: string;
-  status: "Ongoing" | "Derivered" | "Returned" | "Failed to Deliver";
+  status: "Ongoing" | "Delivered" | "Returned" | "Failed to Deliver";
 }
 
 // only 1 messenger in Gradex then has only 1 contact
@@ -86,10 +86,11 @@ export const updateShipping = async (
 ): Promise<void> => {
   try {
     const { status } = req.body; // Status from request body
+    const FindTrackingNUmber = req.params.tracking_number
     // Ensure status is one of the allowed values
     const allowedStatuses = [
       "Ongoing",
-      "Derivered",
+      "Delivered",
       "Returned",
       "Failed to Deliver",
     ];
@@ -97,8 +98,8 @@ export const updateShipping = async (
       res.status(400).json({ success: false, message: "Invalid status value" });
       return;
     }
-    const updateShipping = await Shipping.findByIdAndUpdate(
-      req.params.id,
+    const updateShipping = await Shipping.findOneAndUpdate(
+      {tracking_number : FindTrackingNUmber},
       { status },
       { new: true }, // Return the updated document
     );
