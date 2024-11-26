@@ -81,8 +81,9 @@ export const updateIngredient = async (
 ): Promise<void> => {
   try {
     const { name, priceperunit, unit } = req.body as IIngredient;
-    const ingredient = await Ingredient.findByIdAndUpdate(
-      req.params.id,
+    const IngredientName = req.params.name
+    const ingredient = await Ingredient.findOneAndUpdate(
+      { name: IngredientName },
       { name, priceperunit, unit },
       { new: true }, // Return the updated document
     );
@@ -108,9 +109,13 @@ export const deleteIngredient = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const ingredient = await Ingredient.findByIdAndDelete(req.params.id);
+    // const ingredient = await Ingredient.findByIdAndDelete(req.params.id);
+    const ingredientName = req.params.name;  // ใช้ name แทน id
 
-    if (!ingredient) {
+        // ค้นหาและลบ package ที่มีชื่อที่ตรงกับ name
+    const ingredientToDelete = await Ingredient.findOneAndDelete({ name: ingredientName });
+
+    if (!ingredientToDelete) {
       res.status(404).json({ message: "Ingredient not found" });
       return;
     }
