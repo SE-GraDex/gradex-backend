@@ -12,6 +12,7 @@ export interface IDailyOrderList extends Document {
         portion: number;
     }[];
     status: number;
+    package_name: string;
     tracking_number: string;
 }
 
@@ -36,6 +37,6 @@ export interface IMenu extends Document {
         ingredientId: IIngredient;  // Use IIngredient to refer to the populated document
         portion: number;
     }[];
-    package: 'basic' | 'deluxe' | 'premium';
+    package: 'Basic' | 'Deluxe' | 'Premium';
     menu_image: string;
 }

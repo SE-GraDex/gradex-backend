@@ -147,7 +147,7 @@ export const addDailyOrder = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        const { date, menu_title, menu_description, menu_image, ingredient_list, status } = req.body;
+        const { date, menu_title, menu_description, menu_image, ingredient_list, status, package_name } = req.body;
 
         // console.log("Date from req.body", date);
         // Validate ingredient_list
@@ -184,6 +184,7 @@ export const addDailyOrder = async (req: Request, res: Response): Promise<void> 
             existingOrder.menu_image = menu_image;
             existingOrder.ingredient_list = ingredient_list;
             existingOrder.status = status;
+            existingOrder.package_name = package_name;
 
             await existingOrder.save();
 
@@ -200,7 +201,8 @@ export const addDailyOrder = async (req: Request, res: Response): Promise<void> 
                 menu_description,
                 ingredient_list,
                 status,
-                tracking_number: trackingNumber
+                tracking_number: trackingNumber,
+                package_name
             });
 
             await newOrder.save();
@@ -286,6 +288,15 @@ export const autoFill = async (req: Request, res: Response): Promise<void> => {
                 return orderDate === currentDate.toISOString().slice(0, 10);
             });
 
+            // Assign previous menu based on the existing order or null if none
+            previousMenu = menus.find(menu => menu.menu_title === existingOrder?.menu_title) || null;
+
+            // Skip the order if the current date is in the past
+            if (currentDate.toISOString() < new Date().toISOString()) {
+                continue;
+            }
+
+            // If no order exists for this date, create a new one
             if (!existingOrder) {
                 let randomMenu: IMenu;
                 let attempts = 0;
@@ -310,13 +321,12 @@ export const autoFill = async (req: Request, res: Response): Promise<void> => {
                     ingredient_list: randomMenu.ingredient_list,
                     status: 1,
                     tracking_number: trackingNumber,
+                    package_name: randomMenu.package,
                 });
 
                 await newOrder.save();
                 user.daily_order_list.push(newOrder._id as IDailyOrderList);
                 newOrders.push(newOrder);
-            } else {
-                previousMenu = menus.find(menu => menu.menu_title === existingOrder.menu_title) || null;
             }
         }
 
@@ -331,7 +341,6 @@ export const autoFill = async (req: Request, res: Response): Promise<void> => {
         res.status(500).json({ message: 'An error occurred while processing autofill.' });
     }
 };
-
 
 const packageHierarchy = ['Basic', 'Deluxe', 'Premium'];
 
