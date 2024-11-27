@@ -84,30 +84,30 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const currentUser = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const token = req.cookies?.token;
+  try {
+    const token = req.cookies?.token;
 
-        if (!token) {
-            res.status(401).send({ message: "Unauthorized: No token provided" });
-            return;
-        }
-
-        const decoded = jwt.verify(token, secret) as { email: string; role: string };
-
-        const user = await User.findOne({ email: decoded.email }).select('-password'); // Exclude password from the response
-        if (!user) {
-            res.status(404).send({ message: "User not found" });
-            return;
-        }
-
-
-        res.status(200).send(user);
-    } catch (err) {
-        if (err instanceof jwt.JsonWebTokenError) {
-            res.status(401).send({ message: "Unauthorized: Invalid token" });
-        } else {
-            console.log(err instanceof Error ? err.message : 'Unknown error');
-            res.status(500).send({ message: "Internal Server Error" });
-        }
+    if (!token) {
+      res.status(401).send({ message: "Unauthorized: No token provided" });
+      return;
     }
+
+    const decoded = jwt.verify(token, secret) as { email: string; role: string };
+
+    const user = await User.findOne({ email: decoded.email }).select('email role'); // Exclude password from the response
+    if (!user) {
+      res.status(404).send({ message: "User not found" });
+      return;
+    }
+
+
+    res.status(200).send(user);
+  } catch (err) {
+    if (err instanceof jwt.JsonWebTokenError) {
+      res.status(401).send({ message: "Unauthorized: Invalid token" });
+    } else {
+      console.log(err instanceof Error ? err.message : 'Unknown error');
+      res.status(500).send({ message: "Internal Server Error" });
+    }
+  }
 };

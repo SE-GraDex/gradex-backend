@@ -26,7 +26,7 @@ export interface IPackage extends Document {
 
 export interface IIngredient extends Document {
     name: string;
-    pricePerUnit: number;
+    priceperunit: number;
     unit: string;
 }
 

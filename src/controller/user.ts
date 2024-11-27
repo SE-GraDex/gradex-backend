@@ -267,7 +267,9 @@ export const autoFill = async (req: Request, res: Response): Promise<void> => {
         }
 
         const menus = await Menu.find({ package: currentPackage.package_name })
-            .populate('ingredient_list.ingredientId', 'name');
+            .populate('ingredient_list.ingredientId');
+
+        // console.log("SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", menus[0].ingredient_list);
 
         if (!menus.length) {
             res.status(404).send({ message: "No menus found for the active package" });
@@ -279,20 +281,31 @@ export const autoFill = async (req: Request, res: Response): Promise<void> => {
         let previousMenu: IMenu | null = null;
         const newOrders = [];
 
+        // Initialize the current date based on the package start date before the loop
+        const currentDate = new Date(currentPackage.package_start_date);
+
+        if (isNaN(currentDate.getTime())) {
+            console.error("Invalid package start date:", currentPackage.package_start_date);
+            return;
+        }
+
         for (let i = 0; i < 30; i++) {
-            const currentDate = new Date(currentPackage.package_start_date);
-            currentDate.setDate(currentDate.getDate() + i);
+            // Create a new Date object based on the current date (currentDate) for each iteration
+            const iterationDate = new Date(currentDate);
+            iterationDate.setDate(iterationDate.getDate() + i);
 
             const existingOrder = user.daily_order_list.find(order => {
-                const orderDate = new Date(order.date).toISOString().slice(0, 10);
-                return orderDate === currentDate.toISOString().slice(0, 10);
+                const orderDate = new Date(order.date);
+                if (isNaN(orderDate.getTime())) {
+                    // console.error("Invalid order date:", order.date);
+                    return false; // Skip this order if the date is invalid
+                }
+                return orderDate.toISOString().slice(0, 10) === iterationDate.toISOString().slice(0, 10);
             });
 
-            // Assign previous menu based on the existing order or null if none
-            previousMenu = menus.find(menu => menu.menu_title === existingOrder?.menu_title) || null;
 
-            // Skip the order if the current date is in the past
-            if (currentDate.toISOString() < new Date().toISOString()) {
+            // Skip the order if the current date (iterationDate) is in the past
+            if (iterationDate.toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10)) {
                 continue;
             }
 
@@ -312,23 +325,37 @@ export const autoFill = async (req: Request, res: Response): Promise<void> => {
 
                 previousMenu = randomMenu;
 
+                console.log(randomMenu.menu_title);
+
                 const trackingNumber = `${currentPackage.package_name.slice(0, 2).toUpperCase()}-${uuidv4()}`;
                 const newOrder = new DailyOrderList({
-                    date: currentDate,
+                    date: iterationDate,
                     menu_image: randomMenu.menu_image,
                     menu_title: randomMenu.menu_title,
                     menu_description: randomMenu.menu_description,
-                    ingredient_list: randomMenu.ingredient_list,
                     status: 1,
                     tracking_number: trackingNumber,
                     package_name: randomMenu.package,
+                    ingredient_list: randomMenu.ingredient_list.map((ingredient) => {
+
+                        return ({
+                            name: ingredient.ingredientId ? ingredient.ingredientId.name : 'Unknown',
+                            priceperunit: ingredient.ingredientId ? ingredient.ingredientId.priceperunit : 0,
+                            portion: ingredient.portion,
+                            unit: ingredient.ingredientId ? ingredient.ingredientId.unit : 'Unknown',
+                        })
+                    }),
                 });
 
                 await newOrder.save();
                 user.daily_order_list.push(newOrder._id as IDailyOrderList);
                 newOrders.push(newOrder);
             }
+            else {
+                previousMenu = menus.find(menu => menu.menu_title === existingOrder?.menu_title) || null;
+            }
         }
+
 
         await user.save();
 
