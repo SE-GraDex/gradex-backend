@@ -1,5 +1,16 @@
 import { Request, Response } from "express";
 import DailyOrderList from "@/model/Daily_order_list";
+import Menu from "@/model/Menu";
+
+interface TopMenu {
+    menuTitle: string;
+    count: number;
+}
+
+interface TopOrder {
+    _id: string;
+    topMenus: TopMenu[];
+}
 
 // Add a new DailyOrderList
 export const addDailyOrderList = async (req: Request, res: Response): Promise<void> => {
@@ -53,63 +64,65 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
     }
 };
 
+
+
 export const getTopThreeOrders = async (req: Request, res: Response): Promise<void> => {
     try {
-        // Aggregate top three menu titles for each package
-        const topOrders = await DailyOrderList.aggregate([
+        const topOrders: TopOrder[] = await DailyOrderList.aggregate([
             {
                 $group: {
-                    _id: "$package_name", // Group by package_name directly
-                    menuTitles: { $push: "$menu_title" }, // Push menu_title into an array
-                    orderCounts: { $push: 1 }, // Count each order
+                    _id: "$package_name",
+                    menuTitles: { $push: "$menu_title" },
+                },
+            },
+            {
+                $unwind: "$menuTitles",
+            },
+            {
+                $group: {
+                    _id: { package_name: "$_id", menuTitle: "$menuTitles" },
+                    orderCount: { $sum: 1 },
+                },
+            },
+            {
+                $sort: { "_id.package_name": 1, orderCount: -1 },
+            },
+            {
+                $group: {
+                    _id: "$_id.package_name",
+                    topMenus: {
+                        $push: {
+                            menuTitle: "$_id.menuTitle",
+                            count: "$orderCount",
+                        },
+                    },
                 },
             },
             {
                 $project: {
                     _id: 1,
-                    menuTitles: 1,
-                    orderCounts: { $size: "$menuTitles" }, // Get the number of orders per package
-                },
-            },
-            {
-                $unwind: "$menuTitles", // Unwind the menuTitles array so we can count occurrences
-            },
-            {
-                $group: {
-                    _id: { package_name: "$_id", menuTitle: "$menuTitles" }, // Group by both package_name and menuTitle
-                    orderCount: { $sum: 1 }, // Count occurrences of each menuTitle
-                },
-            },
-            {
-                $sort: { "_id.package_name": 1, "orderCount": -1 }, // Sort by package_name and then by orderCount
-            },
-            {
-                $group: {
-                    _id: "$_id.package_name", // Group by package_name again
-                    topMenus: { $push: { menuTitle: "$_id.menuTitle", count: "$orderCount" } }, // Push top menus
-                },
-            },
-            {
-                $project: {
-                    _id: 1, // Retain the package_name (_id is the package_name here)
-                    topMenus: { $slice: ["$topMenus", 3] }, // Limit to top 3 menus per package
+                    topMenus: { $slice: ["$topMenus", 3] }, // Limit to top 3 menus
                 },
             },
         ]);
 
-        // If no top orders are found
         if (topOrders.length === 0) {
             res.status(404).json({ message: "No top orders found" });
             return;
         }
 
-        // Send the top orders in the response
+        const menuTitles = topOrders.flatMap((order: TopOrder) =>
+            order.topMenus.map((menu: TopMenu) => menu.menuTitle)
+        );
+
+        const menus = await Menu.find({ menu_title: { $in: menuTitles } })
+            .populate("ingredient_list.ingredientId", "name")
+            .lean();
+
         res.status(200).json({
-            message: "Top three orders retrieved successfully for each package",
-            data: topOrders,
+            menus
         });
     } catch (error) {
-        // Error handling
         console.error("Error retrieving top orders:", error);
         res.status(500).json({ message: "Internal Server Error", error });
     }
