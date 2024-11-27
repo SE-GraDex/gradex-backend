@@ -22,3 +22,20 @@ export interface IPackage extends Document {
     features: string,
     package_start_date: Date
 }
+
+export interface IIngredient extends Document {
+    name: string;
+    pricePerUnit: number;
+    unit: string;
+}
+
+export interface IMenu extends Document {
+    menu_title: string;
+    menu_description: string;
+    ingredient_list: {
+        ingredientId: IIngredient;  // Use IIngredient to refer to the populated document
+        portion: number;
+    }[];
+    package: 'basic' | 'deluxe' | 'premium';
+    menu_image: string;
+}

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getUser, getAllUsers, addUser, currentDailyOrderList, addDailyOrder, updateOrderCalendar, addUserPackage, getCurrentUserPackage } from '../controller/user';
+import { autoFill, getUser, getAllUsers, addUser, currentDailyOrderList, addDailyOrder, updateOrderCalendar, addUserPackage, getCurrentUserPackage } from '../controller/user';
 
 const router = express.Router();
 
@@ -18,5 +18,7 @@ router.get('/updateOrderCalendar', updateOrderCalendar);
 router.get('/getCurrentUserPackage', getCurrentUserPackage);
 
 router.post('/addUserPackage', addUserPackage);
+
+router.post('/autoFill', autoFill);
 
 export default router;

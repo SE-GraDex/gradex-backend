@@ -5,10 +5,11 @@ import DailyOrderList from '@/model/Daily_order_list';
 import jwt from 'jsonwebtoken';
 import { ObjectId } from 'mongoose';
 import { IDailyOrderList } from "@/utils/interface";
-import { IPackage } from '@/utils/interface';
+import { IPackage, IMenu } from '@/utils/interface';
 import Package from '@/model/Package';
 
 import { v4 as uuidv4 } from 'uuid';
+import Menu from '@/model/Menu';
 
 
 
@@ -148,6 +149,7 @@ export const addDailyOrder = async (req: Request, res: Response): Promise<void> 
 
         const { date, menu_title, menu_description, menu_image, ingredient_list, status } = req.body;
 
+        // console.log("Date from req.body", date);
         // Validate ingredient_list
         if (!Array.isArray(ingredient_list)) {
             res.status(400).send({ message: "'ingredient_list' must be an array" });
@@ -222,6 +224,114 @@ export const addDailyOrder = async (req: Request, res: Response): Promise<void> 
         }
     }
 };
+
+export const autoFill = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const token = req.cookies?.token;
+        if (!token) {
+            res.status(401).json({ message: "Unauthorized: No token provided" });
+            return;
+        }
+
+        let decoded: { email: string; role: string };
+        try {
+            decoded = jwt.verify(token, secret) as { email: string; role: string };
+        } catch (err) {
+            res.status(401).json({ message: "Unauthorized: Invalid or expired token" });
+            return;
+        }
+
+        const user = await User.findOne({ email: decoded.email })
+            .select('-password')
+            .populate<{ daily_order_list: IDailyOrderList[] }>('daily_order_list')
+            .populate<{ package: IPackage[] }>('package');
+
+        if (!user) {
+            res.status(404).send({ message: "User not found" });
+            return;
+        }
+
+        const currentPackage = user.package.find(pkg => {
+            const currentDate = new Date();
+            return (
+                pkg.package_start_date <= currentDate &&
+                getEndPackageDate(pkg.package_start_date) >= currentDate
+            );
+        });
+
+        if (!currentPackage) {
+            res.status(404).send({ message: "No active package found for the user" });
+            return;
+        }
+
+        const menus = await Menu.find({ package: currentPackage.package_name })
+            .populate('ingredient_list.ingredientId', 'name');
+
+        if (!menus.length) {
+            res.status(404).send({ message: "No menus found for the active package" });
+            return;
+        }
+
+        const shuffledMenus = [...menus].sort(() => Math.random() - 0.5);
+
+        let previousMenu: IMenu | null = null;
+        const newOrders = [];
+
+        for (let i = 0; i < 30; i++) {
+            const currentDate = new Date(currentPackage.package_start_date);
+            currentDate.setDate(currentDate.getDate() + i);
+
+            const existingOrder = user.daily_order_list.find(order => {
+                const orderDate = new Date(order.date).toISOString().slice(0, 10);
+                return orderDate === currentDate.toISOString().slice(0, 10);
+            });
+
+            if (!existingOrder) {
+                let randomMenu: IMenu;
+                let attempts = 0;
+
+                do {
+                    randomMenu = shuffledMenus[i % shuffledMenus.length];
+                    attempts++;
+
+                    if (menus.length === 1 || attempts > menus.length) {
+                        break;
+                    }
+                } while (randomMenu === previousMenu);
+
+                previousMenu = randomMenu;
+
+                const trackingNumber = `${currentPackage.package_name.slice(0, 2).toUpperCase()}-${uuidv4()}`;
+                const newOrder = new DailyOrderList({
+                    date: currentDate,
+                    menu_image: randomMenu.menu_image,
+                    menu_title: randomMenu.menu_title,
+                    menu_description: randomMenu.menu_description,
+                    ingredient_list: randomMenu.ingredient_list,
+                    status: 1,
+                    tracking_number: trackingNumber,
+                });
+
+                await newOrder.save();
+                user.daily_order_list.push(newOrder._id as IDailyOrderList);
+                newOrders.push(newOrder);
+            } else {
+                previousMenu = menus.find(menu => menu.menu_title === existingOrder.menu_title) || null;
+            }
+        }
+
+        await user.save();
+
+        res.status(201).send({
+            message: "Daily orders added successfully",
+            data: newOrders,
+        });
+    } catch (error) {
+        console.error('Error fetching user package:', error);
+        res.status(500).json({ message: 'An error occurred while processing autofill.' });
+    }
+};
+
 
 const packageHierarchy = ['Basic', 'Deluxe', 'Premium'];
 
