@@ -12,6 +12,7 @@ export interface IDailyOrderList extends Document {
         portion: number;
     }[];
     status: number;
+    package_name: string;
     tracking_number: string;
 }
 
@@ -21,4 +22,21 @@ export interface IPackage extends Document {
     price: number,
     features: string,
     package_start_date: Date
+}
+
+export interface IIngredient extends Document {
+    name: string;
+    priceperunit: number;
+    unit: string;
+}
+
+export interface IMenu extends Document {
+    menu_title: string;
+    menu_description: string;
+    ingredient_list: {
+        ingredientId: IIngredient;  // Use IIngredient to refer to the populated document
+        portion: number;
+    }[];
+    package: 'Basic' | 'Deluxe' | 'Premium';
+    menu_image: string;
 }
