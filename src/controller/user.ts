@@ -2,10 +2,12 @@ import { Request, Response } from 'express';
 import User from '../model/User';
 import DailyOrderList from '@/model/Daily_order_list';
 
+import { IPackage, IMenu } from '@/utils/interface';
+
+import Menu from '@/model/Menu';
 import jwt from 'jsonwebtoken';
 import { ObjectId } from 'mongoose';
 import { IDailyOrderList } from "@/utils/interface";
-import { IPackage } from '@/utils/interface';
 import Package from '@/model/Package';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -220,6 +222,148 @@ export const addDailyOrder = async (req: Request, res: Response): Promise<void> 
             console.error(err);
             res.status(500).send({ message: "Internal Server Error" });
         }
+    }
+};
+
+export const autoFill = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const token = req.cookies?.token;
+        if (!token) {
+            res.status(401).json({ message: "Unauthorized: No token provided" });
+            return;
+        }
+
+        let decoded: { email: string; role: string };
+        try {
+            decoded = jwt.verify(token, secret) as { email: string; role: string };
+        } catch (err) {
+            res.status(401).json({ message: "Unauthorized: Invalid or expired token" });
+            return;
+        }
+
+        const user = await User.findOne({ email: decoded.email })
+            .select('-password')
+            .populate<{ daily_order_list: IDailyOrderList[] }>('daily_order_list')
+            .populate<{ package: IPackage[] }>('package');
+
+        if (!user) {
+            res.status(404).send({ message: "User not found" });
+            return;
+        }
+
+        const currentPackage = user.package.find(pkg => {
+            const currentDate = new Date();
+            return (
+                pkg.package_start_date <= currentDate &&
+                getEndPackageDate(pkg.package_start_date) >= currentDate
+            );
+        });
+
+        if (!currentPackage) {
+            res.status(404).send({ message: "No active package found for the user" });
+            return;
+        }
+
+        const menus = await Menu.find({ package: currentPackage.package_name })
+            .populate('ingredient_list.ingredientId');
+
+        // console.log("SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS", menus[0].ingredient_list);
+
+        if (!menus.length) {
+            res.status(404).send({ message: "No menus found for the active package" });
+            return;
+        }
+
+        const shuffledMenus = [...menus].sort(() => Math.random() - 0.5);
+
+        let previousMenu: IMenu | null = null;
+        const newOrders = [];
+
+        // Initialize the current date based on the package start date before the loop
+        const currentDate = new Date(currentPackage.package_start_date);
+
+        if (isNaN(currentDate.getTime())) {
+            console.error("Invalid package start date:", currentPackage.package_start_date);
+            return;
+        }
+
+        for (let i = 0; i < 30; i++) {
+            // Create a new Date object based on the current date (currentDate) for each iteration
+            const iterationDate = new Date(currentDate);
+            iterationDate.setDate(iterationDate.getDate() + i);
+
+            const existingOrder = user.daily_order_list.find(order => {
+                const orderDate = new Date(order.date);
+                if (isNaN(orderDate.getTime())) {
+                    // console.error("Invalid order date:", order.date);
+                    return false; // Skip this order if the date is invalid
+                }
+                return orderDate.toISOString().slice(0, 10) === iterationDate.toISOString().slice(0, 10);
+            });
+
+
+            // Skip the order if the current date (iterationDate) is in the past
+            if (iterationDate.toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10)) {
+                continue;
+            }
+
+            // If no order exists for this date, create a new one
+            if (!existingOrder) {
+                let randomMenu: IMenu;
+                let attempts = 0;
+
+                do {
+                    randomMenu = shuffledMenus[i % shuffledMenus.length];
+                    attempts++;
+
+                    if (menus.length === 1 || attempts > menus.length) {
+                        break;
+                    }
+                } while (randomMenu === previousMenu);
+
+                previousMenu = randomMenu;
+
+                console.log(randomMenu.menu_title);
+
+                const trackingNumber = `${currentPackage.package_name.slice(0, 2).toUpperCase()}-${uuidv4()}`;
+                const newOrder = new DailyOrderList({
+                    date: iterationDate,
+                    menu_image: randomMenu.menu_image,
+                    menu_title: randomMenu.menu_title,
+                    menu_description: randomMenu.menu_description,
+                    status: 1,
+                    tracking_number: trackingNumber,
+                    package_name: randomMenu.package,
+                    ingredient_list: randomMenu.ingredient_list.map((ingredient) => {
+
+                        return ({
+                            name: ingredient.ingredientId ? ingredient.ingredientId.name : 'Unknown',
+                            priceperunit: ingredient.ingredientId ? ingredient.ingredientId.priceperunit : 0,
+                            portion: ingredient.portion,
+                            unit: ingredient.ingredientId ? ingredient.ingredientId.unit : 'Unknown',
+                        })
+                    }),
+                });
+
+                await newOrder.save();
+                user.daily_order_list.push(newOrder._id as IDailyOrderList);
+                newOrders.push(newOrder);
+            }
+            else {
+                previousMenu = menus.find(menu => menu.menu_title === existingOrder?.menu_title) || null;
+            }
+        }
+
+
+        await user.save();
+
+        res.status(201).send({
+            message: "Daily orders added successfully",
+            data: newOrders,
+        });
+    } catch (error) {
+        console.error('Error fetching user package:', error);
+        res.status(500).json({ message: 'An error occurred while processing autofill.' });
     }
 };
 

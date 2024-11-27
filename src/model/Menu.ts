@@ -2,7 +2,7 @@ import mongoose, { Schema, Document, ObjectId } from "mongoose";
 
 interface IIngredient extends Document {
   name: string;
-  pricePerUnit: number;
+  priceperunit: number;
   unit: string;
 }
 
@@ -39,16 +39,16 @@ const menuSchema = new Schema<IMenu>({
         type: Number,
         required: true,
       },
-    //   priceperunit: {  
-    //   type: Number, 
-    //   // required: true
-    //  }
-    //  ,
-      
-    //   unit:{
-    //     type: String,
-    //     // required: true
-    //   }
+      //   priceperunit: {  
+      //   type: Number, 
+      //   // required: true
+      //  }
+      //  ,
+
+      //   unit:{
+      //     type: String,
+      //     // required: true
+      //   }
 
     },
   ],
