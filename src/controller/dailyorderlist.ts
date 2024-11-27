@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import DailyOrderList from "@/model/Daily_order_list";
 import Menu from "@/model/Menu";
+
 interface TopMenu {
     menuTitle: string;
     count: number;
@@ -15,7 +16,7 @@ interface TopOrder {
 export const addDailyOrderList = async (req: Request, res: Response): Promise<void> => {
     try {
 
-        const { date, menu_title, menu_description, menu_image, ingredient_list, status } = req.body;
+        const { date, menu_title, menu_description, menu_image, ingredient_list, status, package_name } = req.body;
 
         const newOrder = new DailyOrderList({
             date,
@@ -23,7 +24,8 @@ export const addDailyOrderList = async (req: Request, res: Response): Promise<vo
             menu_title,
             menu_description,
             ingredient_list,
-            status
+            status,
+            package_name
         });
 
         const savedOrder = await newOrder.save();
@@ -61,6 +63,8 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
         res.status(500).json({ message: "Internal Server Error", error });
     }
 };
+
+
 
 export const getTopThreeOrders = async (req: Request, res: Response): Promise<void> => {
     try {
