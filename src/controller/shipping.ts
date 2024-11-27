@@ -1,5 +1,5 @@
 import DailyOrderList from "@/model/Daily_order_list";
-import Shipping from "@/model/Shipping";
+import Shipping from "@/model/shipping";
 import User from "@/model/User";
 import { Request, Response } from "express";
 

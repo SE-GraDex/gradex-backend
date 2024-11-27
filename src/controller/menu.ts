@@ -1,6 +1,18 @@
 import { Request, Response } from "express";
 import Menu from "../model/Menu";
 import Ingredient from "../model/Ingredient";
+import sharp from 'sharp';
+
+// Utility function to compress image before Base64 encoding
+const compressImageToBase64 = async (imageBuffer: Buffer): Promise<string> => {
+  const compressedBuffer = await sharp(imageBuffer)
+    .resize(360,360) // Resize to 800px width
+    .jpeg({ quality: 80 }) // Compress JPEG to 80% quality
+    .toBuffer();
+
+  // Convert the compressed buffer to Base64
+  return compressedBuffer.toString('base64');
+};
 
 // Add a new menu
 export const addMenu = async (req: Request, res: Response): Promise<void> => {
@@ -12,12 +24,22 @@ export const addMenu = async (req: Request, res: Response): Promise<void> => {
       // menu_image,
     } = req.body;
 
+    let menu_image: any;
     if (!req.file) {
       res.status(400).json({ error: "No file uploaded" });
       return;
     }
+    else{
+      const fileBuffer = req.file.buffer;
 
-    let menu_image: any;
+    // Compress the image and encode it to Base64
+    const base64Data = await compressImageToBase64(fileBuffer);
+
+    // Construct the full Base64 image string
+    menu_image = `data:${req.file.mimetype};base64,${base64Data}`;
+    }
+
+   
     console.log(req.body);
 
     // console.log(req.body + " file " + req.file);
@@ -36,12 +58,6 @@ export const addMenu = async (req: Request, res: Response): Promise<void> => {
       }
     } else {
       ingredient_list = req.body.ingredient_list;
-    }
-
-    // Validate ingredient_list is an array
-    if (!Array.isArray(ingredient_list)) {
-      res.status(400).json({ message: "ingredient_list must be an array" });
-      return;
     }
 
     // Validate other fields
@@ -67,7 +83,7 @@ export const addMenu = async (req: Request, res: Response): Promise<void> => {
 
     // Create ingredient list with IDs
     const ingredientListWithIds = ingredient_list.map(
-      (item: { name: string; portion: number }) => {
+      (item: { name: string; portion: number; }) => {
         const ingredient = ingredients.find(
           (ingredient) => ingredient.name === item.name,
         );
@@ -82,8 +98,8 @@ export const addMenu = async (req: Request, res: Response): Promise<void> => {
       },
     );
 
-    const fileBuffer = req.file.buffer;
-    menu_image = `data:${req.file.mimetype};base64,${fileBuffer.toString("base64")}`;
+    // const fileBuffer = req.file.buffer;
+    // menu_image = `data:${req.file.mimetype};base64,${fileBuffer.toString("base64")}`;
 
     // Save menu
     const newMenu = new Menu({
@@ -127,6 +143,7 @@ export const deleteMenu = async (
 };
 
 // Get all menus
+// Get all menus
 export const getAllMenus = async (
   _req: Request,
   res: Response,
@@ -134,32 +151,41 @@ export const getAllMenus = async (
   try {
     // Fetch all menus and populate ingredientId fields
     const menus = await Menu.find()
-      .populate("ingredient_list.ingredientId", "name") // Populate only the 'name' field of ingredientId
+      .populate("ingredient_list.ingredientId", "name unit pricePerUnit") // Populate 'name', 'unit', and 'pricePerUnit' fields
       .lean(); // Convert documents to plain JavaScript objects
 
     // Transform the data to match the desired output structure
-    const transformedMenus = menus.map((menu) => ({
-      id: menu.id,
-      menu_title: menu.menu_title,
-      menu_description: menu.menu_description,
-      menu_image: menu.menu_image,
-      package: menu.package,
-      ingredient_list: menu.ingredient_list.map(
-        (item: {
-          ingredientId: { name?: string } | null;
-          portion: number;
-        }) => ({
-          name: item.ingredientId?.name || "Unknown", // Handle missing or undefined ingredientId
-          portion: item.portion,
-        }),
-      ),
-    }));
+    const transformedMenus = await Promise.all(
+      menus.map(async (menu) => {
+        const ingredientList = await Promise.all(
+          menu.ingredient_list.map(async (item: any) => {
+            // Fetch ingredient details based on ingredientId
+            const ingredient = await Ingredient.findById(item.ingredientId).select("name unit priceperunit");
+            return {
+              name: ingredient?.name || "Unknown", // Handle missing or undefined ingredient
+              portion: item.portion,
+              unit: ingredient?.unit || "N/A", // Include the unit field
+              priceperunit: ingredient?.priceperunit || 0, // Include pricePerUnit, default to 0 if missingz
+            };
+          }),
+        );
 
-    res.status(200).json(menus);
+        return {
+          menu_title: menu.menu_title,
+          menu_description: menu.menu_description,
+          package: menu.package,
+          ingredient_list: ingredientList,
+          menu_image: menu.menu_image, // Use the processed ingredient list
+        };
+      }),
+    );
+
+    res.status(200).json(transformedMenus);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Get a menu by ID
 export const getMenuById = async (
@@ -169,17 +195,93 @@ export const getMenuById = async (
   try {
     const { id } = req.params;
 
-    const menu = await Menu.findById(id).select("-__v"); // Exclude unnecessary fields like __v
+    // Fetch the menu by ID and populate ingredient details
+    const menu = await Menu.findById(id)
+      .populate("ingredient_list.ingredientId", "name unit pricePerUnit") // Populate 'name', 'unit', and 'pricePerUnit'
+      .select("-__v") // Exclude the '__v' field
+      .lean(); // Convert the document to a plain JavaScript object
+
     if (!menu) {
       res.status(404).json({ message: "Menu not found" });
       return;
     }
 
-    res.status(200).json(menu);
+    // Transform ingredient list to include enriched details
+    const transformedIngredientList = menu.ingredient_list.map(
+      (item: {
+        ingredientId: { name?: string; unit?: string; pricePerUnit?: number } | null;
+        portion: number;
+      }) => ({
+        name: item.ingredientId?.name || "Unknown",
+        portion: item.portion,
+        unit: item.ingredientId?.unit || "N/A",
+        pricePerUnit: item.ingredientId?.pricePerUnit || 0,
+      }),
+    );
+
+    // Prepare the final transformed response
+    const transformedMenu = {
+      menu_title: menu.menu_title,
+      menu_description: menu.menu_description,
+      package: menu.package,
+      ingredient_list: transformedIngredientList,
+      menu_image: menu.menu_image,
+    };
+
+    res.status(200).json(transformedMenu);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Get a menu by name
+export const getMenuByName = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { name } = req.params;
+
+    // Fetch the menu by its title and populate ingredient details
+    const menu = await Menu.findOne({ menu_title: name })
+      .populate("ingredient_list.ingredientId", "name unit pricePerUnit") // Populate 'name', 'unit', and 'pricePerUnit'
+      .select("-__v") // Exclude the '__v' field
+      .lean(); // Convert the document to a plain JavaScript object
+
+    if (!menu) {
+      res.status(404).json({ message: "Menu not found" });
+      return;
+    }
+
+    // Transform ingredient list to include enriched details
+    const transformedIngredientList = menu.ingredient_list.map(
+      (item: {
+        ingredientId: { name?: string; unit?: string; pricePerUnit?: number } | null;
+        portion: number;
+      }) => ({
+        name: item.ingredientId?.name || "Unknown",
+        portion: item.portion,
+        unit: item.ingredientId?.unit || "N/A",
+        pricePerUnit: item.ingredientId?.pricePerUnit || 0,
+      }),
+    );
+
+    // Prepare the final transformed response
+    const transformedMenu = {
+      menu_title: menu.menu_title,
+      menu_description: menu.menu_description,
+      package: menu.package,
+      ingredient_list: transformedIngredientList,
+      menu_image: menu.menu_image,
+    };
+
+    res.status(200).json(transformedMenu);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 
 export const updateMenuById = async (
   req: Request,
@@ -228,7 +330,7 @@ export const updateMenuById = async (
 
       // Map ingredients to include IDs
       updatedIngredientList = ingredient_list.map(
-        (item: { name: string; portion: number }) => {
+        (item: { name: string; portion: number ; unit: string}) => {
           const ingredient = ingredients.find(
             (ingredient) => ingredient.name === item.name,
           );
@@ -238,6 +340,7 @@ export const updateMenuById = async (
           return {
             ingredientId: ingredient._id,
             portion: item.portion,
+            unit: item.unit
           };
         },
       );
