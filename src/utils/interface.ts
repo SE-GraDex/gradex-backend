@@ -1,5 +1,12 @@
 import { Document, ObjectId } from "mongoose";
 
+export interface IShipping {
+    tracking_number: string;
+    customer_name: string;
+    address: string;
+    contact: string;
+    status: "Ongoing" | "Delivered" | "Returned" | "Failed to Deliver";
+}
 export interface IDailyOrderList extends Document {
     date: Date;
     menu_title: string;

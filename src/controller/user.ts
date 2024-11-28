@@ -11,6 +11,8 @@ import { IDailyOrderList } from "@/utils/interface";
 import Package from '@/model/Package';
 
 import { v4 as uuidv4 } from 'uuid';
+import Shipping from '@/model/shipping';
+import { IShipping } from "@/utils/interface";
 
 
 
@@ -210,6 +212,25 @@ export const addDailyOrder = async (req: Request, res: Response): Promise<void> 
 
             await user.save();
 
+            const messenger = await User.findOne({ role: "MESSENGER" }).select(
+                "firstname lastname",
+            );
+            if (!messenger) {
+                res
+                    .status(404)
+                    .json({ success: false, message: "No messenger user found" });
+                return;
+            }
+
+            const newShipping = new Shipping({
+                tracking_number: trackingNumber,
+                customer_name: `${messenger.firstname} ${messenger.lastname}`,
+                address: user?.addressName,
+                contact: "060000000",
+                status: "Ongoing",
+            } as IShipping);
+            await newShipping.save();
+
             res.status(201).send({
                 message: "Daily Order added successfully",
                 data: user,
@@ -306,6 +327,7 @@ export const autoFill = async (req: Request, res: Response): Promise<void> => {
 
             // Skip the order if the current date (iterationDate) is in the past
             if (iterationDate.toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10)) {
+                // console.log("here", iterationDate.toISOString().slice(0, 10), new Date().toISOString().slice(0, 10));
                 continue;
             }
 
@@ -350,6 +372,25 @@ export const autoFill = async (req: Request, res: Response): Promise<void> => {
                 await newOrder.save();
                 user.daily_order_list.push(newOrder._id as IDailyOrderList);
                 newOrders.push(newOrder);
+
+                const messenger = await User.findOne({ role: "MESSENGER" }).select(
+                    "firstname lastname",
+                );
+                if (!messenger) {
+                    res
+                        .status(404)
+                        .json({ success: false, message: "No messenger user found" });
+                    return;
+                }
+
+                const newShipping = new Shipping({
+                    tracking_number: trackingNumber,
+                    customer_name: `${messenger.firstname} ${messenger.lastname}`,
+                    address: user?.addressName,
+                    contact: "060000000",
+                    status: "Ongoing",
+                } as IShipping);
+                await newShipping.save();
             }
             else {
                 previousMenu = menus.find(menu => menu.menu_title === existingOrder?.menu_title) || null;

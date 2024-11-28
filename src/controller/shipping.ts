@@ -2,14 +2,8 @@ import DailyOrderList from "@/model/Daily_order_list";
 import Shipping from "@/model/shipping";
 import User from "@/model/User";
 import { Request, Response } from "express";
+import { IShipping } from "@/utils/interface";
 
-interface IShipping {
-  tracking_number: string;
-  customer_name: string;
-  address: string;
-  contact: string;
-  status: "Ongoing" | "Delivered" | "Returned" | "Failed to Deliver";
-}
 
 // only 1 messenger in Gradex then has only 1 contact
 const ContactMessenger = "060000000";
@@ -99,7 +93,7 @@ export const updateShipping = async (
       return;
     }
     const updateShipping = await Shipping.findOneAndUpdate(
-      {tracking_number : FindTrackingNUmber},
+      { tracking_number: FindTrackingNUmber },
       { status },
       { new: true }, // Return the updated document
     );
