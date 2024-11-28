@@ -148,8 +148,8 @@ export const addDailyOrder = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        const { date, menu_title, menu_description, menu_image, ingredient_list, status } = req.body;
-
+        const { date, menu_title, menu_description, menu_image, ingredient_list, status, package_name } = req.body;
+        console.log("here", req.body);
         // Validate ingredient_list
         if (!Array.isArray(ingredient_list)) {
             res.status(400).send({ message: "'ingredient_list' must be an array" });
@@ -184,6 +184,7 @@ export const addDailyOrder = async (req: Request, res: Response): Promise<void> 
             existingOrder.menu_image = menu_image;
             existingOrder.ingredient_list = ingredient_list;
             existingOrder.status = status;
+            existingOrder.package_name = package_name;
 
             await existingOrder.save();
 
@@ -200,7 +201,8 @@ export const addDailyOrder = async (req: Request, res: Response): Promise<void> 
                 menu_description,
                 ingredient_list,
                 status,
-                tracking_number: trackingNumber
+                tracking_number: trackingNumber,
+                package_name
             });
 
             await newOrder.save();
