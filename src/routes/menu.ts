@@ -16,6 +16,6 @@ router.delete("/deleteMenu/:id", deleteMenu);
 router.get("/getMenus", getAllMenus);
 router.get("/getMenuById/:id", getMenuById);
 router.get('/getMenuByName/:name', getMenuByName);
-router.put("/updateMenu/:id", upload.single("menu_image"), updateMenuById);
+router.put("/updateMenu/:menu_title", upload.single("menu_image"), updateMenuById);
 
 export default router;

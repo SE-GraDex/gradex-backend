@@ -288,16 +288,16 @@ export const updateMenuById = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { id } = req.params;
+    const oldname:string = req.params.menu_title;
     const {
       menu_title,
       menu_description,
       ingredient_list,
       package: menuPackage,
     } = req.body;
-
+    // console.log(oldname,req.body);
     // Check if the menu exists
-    const existingMenu = await Menu.findById(id);
+    const existingMenu = await Menu.findOne({ menu_title: oldname });
     if (!existingMenu) {
       res.status(404).json({ message: "Menu not found" });
       return;
