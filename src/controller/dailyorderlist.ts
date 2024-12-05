@@ -116,12 +116,20 @@ export const getTopThreeOrders = async (req: Request, res: Response): Promise<vo
         );
 
         const menus = await Menu.find({ menu_title: { $in: menuTitles } })
-            .populate("ingredient_list.ingredientId", "name")
+            .populate("ingredient_list.ingredientId")
             .lean();
 
-        res.status(200).json({
-            menus
-        });
+        const transformedMenus = menus.map(menu => ({
+            ...menu,
+            ingredient_list: menu.ingredient_list.map(ingredient => ({
+                name: ingredient.ingredientId.name,
+                unit: ingredient.ingredientId.unit,
+                priceperunit: ingredient.ingredientId.priceperunit,
+                portion: ingredient.portion,
+            })),
+        }));
+
+        res.status(200).json({ menus: transformedMenus });
     } catch (error) {
         console.error("Error retrieving top orders:", error);
         res.status(500).json({ message: "Internal Server Error", error });
