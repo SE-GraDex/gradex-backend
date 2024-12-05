@@ -295,75 +295,99 @@ export const updateMenuById = async (
       ingredient_list,
       package: menuPackage,
     } = req.body;
-    // console.log(oldname,req.body);
+    console.log(oldname,req.body);
     // Check if the menu exists
     const existingMenu = await Menu.findOne({ menu_title: oldname });
     if (!existingMenu) {
       res.status(404).json({ message: "Menu not found" });
       return;
     }
-
+    let status = 0 ;
     // Process image: Either Base64 from body or convert from file
-    let menu_image = req.body.menu_image; // Check if Base64 string is provided
-    if (!menu_image && req.file) {
-      // Convert uploaded file to Base64
-      menu_image = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
-    }
+       // Process image: Either Base64 from body or convert and compress from file
+       let menu_image = existingMenu.menu_image; // Default to the existing image
 
-    // Validate and process ingredient_list
-    let updatedIngredientList: any = [];
-    if (ingredient_list && Array.isArray(ingredient_list)) {
-      const ingredientNames = ingredient_list.map(
-        (item: { name: string }) => item.name,
-      );
-      const ingredients = await Ingredient.find({
-        name: { $in: ingredientNames },
-      });
+       if (req.body.menu_image) {
+         // If a new Base64 string is provided
+         
+         menu_image = req.body.menu_image;
+         console.log("menu_image is string",menu_image);
+       } else if (req.file) {
+         // If a file is uploaded, compress and convert to Base64
+         console.log("menu_image is file");
 
-      // Check if all ingredients exist
-      if (ingredients.length !== ingredientNames.length) {
-        res
-          .status(400)
-          .json({ message: "Some ingredients are invalid or do not exist" });
-        return;
-      }
-
-      // Map ingredients to include IDs
-      updatedIngredientList = ingredient_list.map(
-        (item: { name: string; portion: number ; unit: string}) => {
-          const ingredient = ingredients.find(
-            (ingredient) => ingredient.name === item.name,
-          );
-          if (!ingredient) {
-            throw new Error(`Ingredient not found: ${item.name}`);
-          }
-          return {
-            ingredientId: ingredient._id,
-            portion: item.portion,
-            unit: item.unit
-          };
-        },
-      );
-    }
-
-    // Update the menu fields
-    existingMenu.menu_title = menu_title || existingMenu.menu_title;
-    existingMenu.menu_description =
-      menu_description || existingMenu.menu_description;
-    existingMenu.ingredient_list =
-      updatedIngredientList.length > 0
-        ? updatedIngredientList
-        : existingMenu.ingredient_list;
-    existingMenu.package = menuPackage || existingMenu.package;
-    existingMenu.menu_image = menu_image || existingMenu.menu_image;
-
-    // Save the updated menu
-    const updatedMenu = await existingMenu.save();
-
-    res
-      .status(200)
-      .json({ message: "Menu updated successfully", menu: updatedMenu });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
+         const fileBuffer = req.file.buffer;
+         const base64Data = await compressImageToBase64(fileBuffer);
+         menu_image = `data:${req.file.mimetype};base64,${base64Data}`;
+       }
+   
+       // Validate and parse ingredient list
+       let parsedIngredientList;
+       if (typeof ingredient_list === "string") {
+         try {
+           parsedIngredientList = JSON.parse(ingredient_list);
+         } catch (error) {
+           res.status(400).json({
+             message: "Invalid ingredient_list format. Must be valid JSON.",
+           });
+           return;
+         }
+       } else {
+         parsedIngredientList = ingredient_list;
+       }
+   
+       // Fetch ingredients from database
+       if (parsedIngredientList) {
+         const ingredientNames = parsedIngredientList.map(
+           (item: { name: string }) => item.name,
+         );
+         const ingredients = await Ingredient.find({
+           name: { $in: ingredientNames },
+         });
+   
+         if (ingredients.length !== ingredientNames.length) {
+           res
+             .status(400)
+             .json({ message: "Some ingredients are invalid or do not exist" });
+           return;
+         }
+   
+         // Create ingredient list with IDs
+         parsedIngredientList = parsedIngredientList.map(
+           (item: { name: string; portion: number }) => {
+             const ingredient = ingredients.find(
+               (ingredient) => ingredient.name === item.name,
+             );
+             if (!ingredient) {
+               throw new Error(`Ingredient not found: ${item.name}`);
+             }
+             return {
+               ingredientId: ingredient._id,
+               portion: item.portion,
+               name: item.name,
+             };
+           },
+         );
+       }
+   
+       // Update the menu
+       existingMenu.menu_title = menu_title || existingMenu.menu_title;
+       existingMenu.menu_description =
+         menu_description || existingMenu.menu_description;
+       existingMenu.package = menuPackage || existingMenu.package;
+       existingMenu.ingredient_list = parsedIngredientList || existingMenu.ingredient_list;
+       existingMenu.menu_image = menu_image; // Use updated or existing image
+      //  if(!menu_image.includes("blob")){
+      //  }
+   
+       // Save the updated menu
+       await existingMenu.save();
+   
+       res.status(200).json({
+         message: "Menu updated successfully",
+         menu: existingMenu,
+       });
+     } catch (error: any) {
+       res.status(500).json({ error: error.message });
+     }
 };
