@@ -21,7 +21,7 @@ app.use(
   cors({
     origin: [
       env.FRONTEND || "http://localhost:5173",
-      "https://gradex.bangmod.engineer",
+      "https://gradex-cpe.vercel.app",
     ],
     credentials: true,
   })
